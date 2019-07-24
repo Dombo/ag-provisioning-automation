@@ -1,0 +1,35 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+  become_method: sudo
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        update_cache: yes
+
+    - name: Copy nginx config files
+      copy:
+        src: "./files/nginx.conf"
+        dest: "/etc/nginx/nginx.conf"
+        mode: 0644
+
+    - name: Copy static files
+      copy:
+        src: "./files/static_website/"
+        dest: "/var/www/html/"
+        mode: 0644
+
+    - name: Gather EC2 instance metadata
+      action: ec2_facts
+
+    - name: Insert instance ID
+      lineinfile:
+        dest: /var/www/html/index.html
+        regexp: 'INSTANCEIDSENTINELSTRING'
+        line: "{{ ansible_ec2_instance_id }}"
+
+    - name: Restart Nginx
+      service: name=nginx state=restarted
+      become: yes
